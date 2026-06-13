@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naidu Hotel — Smart POS & Billing</title>
+    <meta name="description" content="Premium Restaurant Billing & POS System for Naidu Hotel - Smart table management, fast billing, and Bluetooth printing.">
+    <link rel="stylesheet" href="styles.css">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="bg-particles" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="app-container">
+        <!-- ===== SIDEBAR NAVIGATION ===== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo-container">
+                <div class="logo-icon"><i class="fa-solid fa-utensils"></i></div>
+                <div class="logo-text-wrap">
+                    <span class="logo-text">Naidu Hotel</span>
+                    <span class="logo-sub">Restaurant POS</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu" role="navigation" aria-label="Main Navigation">
+                <ul class="nav-links">
+                    <li class="nav-item active" data-tab="dashboard" id="nav-dashboard">
+                        <button aria-label="Operations Dashboard">
+                            <span class="nav-icon"><i class="fa-solid fa-table-cells-large"></i></span>
+                            <span class="nav-label">Operations</span>
+                            <span class="nav-badge" id="nb-active-tables">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" data-tab="billing-console" id="nav-billing">
+                        <button aria-label="Billing Panel">
+                            <span class="nav-icon"><i class="fa-solid fa-cash-register"></i></span>
+                            <span class="nav-label">Billing Panel</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" data-tab="orders" id="nav-orders">
+                        <button aria-label="Orders & Bills">
+                            <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span>
+                            <span class="nav-label">Orders & Bills</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" data-tab="printer-config" id="nav-printer">
+                        <button aria-label="Receipt Designer">
+                            <span class="nav-icon"><i class="fa-solid fa-print"></i></span>
+                            <span class="nav-label">Receipt Studio</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" data-tab="reports" id="nav-reports">
+                        <button aria-label="Reports">
+                            <span class="nav-icon"><i class="fa-solid fa-chart-bar"></i></span>
+                            <span class="nav-label">Reports</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" data-tab="sql-playground" id="nav-sql">
+                        <button aria-label="SQL Console">
+                            <span class="nav-icon"><i class="fa-solid fa-terminal"></i></span>
+                            <span class="nav-label">SQL Console</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer: Printer & Time -->
+            <div class="sidebar-footer">
+                <div class="printer-status-panel">
+                    <div class="status-indicator">
+                        <span id="printer-status-dot" class="status-dot"></span>
+                        <span id="printer-status-text">Printer: Offline</span>
+                    </div>
+                    <button id="btn-connect-printer" class="btn btn-secondary btn-sm">
+                        <i class="fa-brands fa-bluetooth"></i> Connect Printer
+                    </button>
+                </div>
+                <div class="sidebar-time" id="sidebar-time"></div>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            <!-- Top Header Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1 id="tab-title">Operations Control</h1>
+                    <span class="breadcrumb" id="tab-breadcrumb">Dashboard / Overview</span>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-time" id="live-clock">Loading...</div>
+                    <div class="user-avatar">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <!-- =================== DASHBOARD TAB =================== -->
+                <section id="tab-dashboard" class="tab-panel active">
+
+                    <!-- Quick Stats Row -->
+                    <div class="stats-grid">
+                        <div class="glass-panel stat-card" id="sc-tables">
+                            <div class="stat-icon" style="color: #00f2fe; background: rgba(0,242,254,0.08);">
+                                <i class="fa-solid fa-chair"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Active Dine-In</span>
+                                <span class="stat-value" id="stat-active-tables">0 / 8</span>
+                                <span class="stat-sub">Tables Occupied</span>
+                            </div>
+                            <div class="stat-glow cyan"></div>
+                        </div>
+                        <div class="glass-panel stat-card" id="sc-parcels">
+                            <div class="stat-icon" style="color: #9333ea; background: rgba(147,51,234,0.08);">
+                                <i class="fa-solid fa-box-open"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Parcel Orders</span>
+                                <span class="stat-value" id="stat-active-parcels">0</span>
+                                <span class="stat-sub">Active Takeaways</span>
+                            </div>
+                            <div class="stat-glow purple"></div>
+                        </div>
+                        <div class="glass-panel stat-card" id="sc-sales">
+                            <div class="stat-icon" style="color: #10b981; background: rgba(16,185,129,0.08);">
+                                <i class="fa-solid fa-indian-rupee-sign"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Today's Revenue</span>
+                                <span class="stat-value" id="stat-total-sales">Rs. 0</span>
+                                <span class="stat-sub">Completed Bills</span>
+                            </div>
+                            <div class="stat-glow green"></div>
+                        </div>
+                        <div class="glass-panel stat-card" id="sc-bills">
+                            <div class="stat-icon" style="color: #f59e0b; background: rgba(245,158,11,0.08);">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Bills Generated</span>
+                                <span class="stat-value" id="stat-total-bills">0</span>
+                                <span class="stat-sub">Today's Orders</span>
+                            </div>
+                            <div class="stat-glow amber"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Layout -->
+                    <div class="dashboard-layout">
+                        <!-- LEFT: Table Grid -->
+                        <div class="glass-panel table-map-panel">
+                            <div class="room-grid-header">
+                                <div>
+                                    <h2><i class="fa-solid fa-table-cells"></i> Restaurant Floor — 8 Tables</h2>
+                                    <p class="panel-sub">Click a table to open or manage its order</p>
+                                </div>
+                                <div class="room-legend">
+                                    <div class="legend-item"><span class="legend-dot vacant"></span> Vacant</div>
+                                    <div class="legend-item"><span class="legend-dot occupied"></span> Dining</div>
+                                    <div class="legend-item"><span class="legend-dot billing"></span> Billing</div>
+                                </div>
+                            </div>
+                            <div class="table-layout-grid" id="restaurant-tables-grid">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Actions + Parcels + Logs -->
+                        <div class="quick-panel-col">
+
+                            <!-- Fast Action Buttons -->
+                            <div class="glass-panel">
+                                <h2 class="panel-title"><i class="fa-solid fa-bolt"></i> Quick Actions</h2>
+                                <div class="quick-action-list">
+                                    <button class="action-card-btn" id="action-dinein-billing">
+                                        <div class="action-card-icon cyan">
+                                            <i class="fa-solid fa-chair"></i>
+                                        </div>
+                                        <div>
+                                            <div class="action-card-title">New Dine-In Order</div>
+                                            <div class="action-card-desc">Assign a table & start ordering</div>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right action-arrow"></i>
+                                    </button>
+                                    <button class="action-card-btn" id="action-parcel-billing">
+                                        <div class="action-card-icon purple">
+                                            <i class="fa-solid fa-box-open"></i>
+                                        </div>
+                                        <div>
+                                            <div class="action-card-title">New Parcel Order</div>
+                                            <div class="action-card-desc">Takeaway — no table required</div>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right action-arrow"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Pending Parcels -->
+                            <div class="glass-panel">
+                                <h2 class="panel-title"><i class="fa-solid fa-bag-shopping"></i> Pending Parcels</h2>
+                                <div class="active-parcels-grid" id="active-parcels-list">
+                                    <!-- Dynamically populated -->
+                                </div>
+                            </div>
+
+                            <!-- System Activity Log -->
+                            <div class="glass-panel">
+                                <h2 class="panel-title"><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</h2>
+                                <div class="history-list" id="dashboard-logs">
+                                    <!-- Dynamically populated -->
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =================== BILLING CONSOLE TAB =================== -->
+                <section id="tab-billing-console" class="tab-panel">
+                    <div class="glass-panel billing-wrapper">
+                        <div class="restaurant-billing-panel">
+                            <!-- LEFT: Food Menu -->
+                            <div class="menu-section">
+                                <div class="menu-section-header">
+                                    <div style="display:flex; align-items:center; gap:12px;">
+                                        <h2><i class="fa-solid fa-bowl-food"></i> Menu Catalog</h2>
+                                        <button id="btn-open-menu-manager" class="btn-icon-round" title="Manage Menu Items">
+                                            <i class="fa-solid fa-gear"></i>
+                                        </button>
+                                    </div>
+                                    <span class="menu-search-wrap">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <input type="text" id="menu-search" class="form-control menu-search-input" placeholder="Search item...">
+                                    </span>
+                                </div>
+                                <div class="menu-tabs" id="billing-menu-categories">
+                                    <!-- Dynamic -->
+                                </div>
+                                <div class="menu-items-grid" id="billing-menu-grid">
+                                    <!-- Dynamic food cards -->
+                                </div>
+                            </div>
+
+                            <!-- RIGHT: Live Cart / Order Panel -->
+                            <div class="order-cart-section">
+                                <div class="cart-header">
+                                    <div>
+                                        <h3 id="cart-order-title">No Active Session</h3>
+                                        <span class="badge badge-active" id="cart-order-type">—</span>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" id="cart-clear-session" title="Clear session">
+                                        <i class="fa-solid fa-times"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Cart Items -->
+                                <div class="order-cart-items" id="cart-items-container">
+                                    <div class="cart-empty-state">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        <p>Start a table or parcel session, then click menu items to add them here.</p>
+                                    </div>
+                                </div>
+
+                                <div class="receipt-divider"></div>
+
+                                <!-- Charge Adjustments -->
+                                <div class="form-grid cart-adjustments">
+                                    <div class="form-group">
+                                        <label for="cart-discount"><i class="fa-solid fa-percent"></i> Discount (%)</label>
+                                        <input type="number" id="cart-discount" class="form-control" value="0" min="0" max="100">
+                                    </div>
+                                    <div class="form-group" id="cart-packing-group" style="display:none;">
+                                        <label for="cart-packing"><i class="fa-solid fa-box"></i> Packing Charge (Rs.)</label>
+                                        <input type="number" id="cart-packing" class="form-control" value="20" min="0">
+                                    </div>
+                                </div>
+
+                                <!-- Live Total -->
+                                <div class="cart-live-total" id="cart-live-total" style="display:none;">
+                                    <span>Subtotal:</span><span id="lt-subtotal">Rs. 0</span>
+                                    <span>GST (5%):</span><span id="lt-tax">Rs. 0</span>
+                                    <span class="total-row">Grand Total:</span><span class="total-row" id="lt-grand">Rs. 0</span>
+                                </div>
+
+                                <!-- Cart Action Buttons -->
+                                <div class="cart-actions">
+                                    <button class="btn btn-secondary" id="cart-btn-save">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save
+                                    </button>
+                                    <button class="btn btn-purple" id="cart-btn-kot">
+                                        <i class="fa-solid fa-kitchen-set"></i> KOT
+                                    </button>
+                                    <button class="btn btn-primary" id="cart-btn-checkout" style="grid-column: span 2;">
+                                        <i class="fa-solid fa-cash-register"></i> Generate Bill & Checkout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =================== ORDERS LIST TAB =================== -->
+                <section id="tab-orders" class="tab-panel">
+                    <div class="glass-panel">
+                        <div class="orders-header">
+                            <h2><i class="fa-solid fa-file-invoice-dollar"></i> Billing Registers</h2>
+                            <div class="orders-filter">
+                                <select id="orders-filter-status" class="form-control" style="width:auto; padding: 8px 12px; font-size:13px;">
+                                    <option value="all">All Orders</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="bookings-table-container">
+                            <table class="bookings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Bill No</th>
+                                        <th>Type</th>
+                                        <th>Table / Source</th>
+                                        <th>Time</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =================== RECEIPT STUDIO TAB =================== -->
+                <section id="tab-printer-config" class="tab-panel">
+                    <div class="glass-panel">
+                        <h2 style="margin-bottom: 24px; font-weight: 700;">
+                            <i class="fa-solid fa-sliders"></i> Thermal Receipt Design Studio
+                        </h2>
+                        <div class="billing-split-layout">
+                            <!-- Config options -->
+                            <div class="customizer-options">
+                                <div class="form-group">
+                                    <label for="cfg-hotel-name">Restaurant Name</label>
+                                    <input type="text" id="cfg-hotel-name" class="form-control" value="NAIDU HOTEL">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfg-tagline">Tagline</label>
+                                    <input type="text" id="cfg-tagline" class="form-control" value="Traditional South Indian Restaurant">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfg-address">Address</label>
+                                    <input type="text" id="cfg-address" class="form-control" value="Opp. Railway Station, Main Road, Kadapa">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfg-phone">Phone Number</label>
+                                    <input type="text" id="cfg-phone" class="form-control" value="+91 8562 245678">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfg-footer">Footer Message</label>
+                                    <input type="text" id="cfg-footer" class="form-control" value="Taste of Tradition. Thank you, Visit Again!">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfg-paper-width">Paper Size</label>
+                                    <select id="cfg-paper-width" class="form-control">
+                                        <option value="58mm">58mm (Mobile)</option>
+                                        <option value="80mm" selected>80mm (Desktop)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 12px; margin-top: 4px;">
+                                    <button class="btn btn-primary" id="btn-save-receipt-config">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                                    </button>
+                                    <button class="btn btn-secondary" id="btn-test-print">
+                                        <i class="fa-solid fa-print"></i> Test Print
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Receipt Preview -->
+                            <div class="preview-receipt-container">
+                                <div id="sample-receipt-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =================== REPORTS TAB =================== -->
+                <section id="tab-reports" class="tab-panel">
+
+                    <!-- Report Type Switcher -->
+                    <div class="report-type-switcher">
+                        <button class="report-type-btn active" data-report="orders" id="rpt-btn-orders">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> Order Reports
+                        </button>
+                        <button class="report-type-btn" data-report="items" id="rpt-btn-items">
+                            <i class="fa-solid fa-bowl-food"></i> Item Reports
+                        </button>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="glass-panel report-filter-bar">
+                        <div class="filter-left">
+                            <select id="rpt-period" class="form-control rpt-select">
+                                <option value="today">Today</option>
+                                <option value="month">This Month</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                            <div class="rpt-date-range" id="rpt-date-range-wrap" style="display:none;">
+                                <input type="date" id="rpt-date-from" class="form-control rpt-date-input">
+                                <span class="rpt-date-to-label">TO</span>
+                                <input type="date" id="rpt-date-to" class="form-control rpt-date-input">
+                            </div>
+                            <div class="rpt-current-period" id="rpt-period-label">Today</div>
+                        </div>
+                        <div class="filter-right">
+                            <button class="btn btn-export pdf" id="btn-export-pdf">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </button>
+                            <button class="btn btn-export xls" id="btn-export-excel">
+                                <i class="fa-solid fa-file-excel"></i> XLS
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats (for Order Report) -->
+                    <div class="report-summary-row" id="rpt-summary-row">
+                        <div class="glass-panel rpt-stat-card">
+                            <i class="fa-solid fa-receipt rpt-stat-icon"></i>
+                            <div>
+                                <div class="rpt-stat-value" id="rpt-txn-count">0</div>
+                                <div class="rpt-stat-label">No. of Transactions</div>
+                            </div>
+                        </div>
+                        <div class="glass-panel rpt-stat-card">
+                            <i class="fa-solid fa-indian-rupee-sign rpt-stat-icon" style="color:var(--green);"></i>
+                            <div>
+                                <div class="rpt-stat-value" id="rpt-total-sales" style="color:var(--green);">Rs. 0</div>
+                                <div class="rpt-stat-label">Total Sale</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Content Area -->
+                    <div class="glass-panel" id="report-content-area">
+                        <!-- Dynamically filled -->
+                    </div>
+
+                </section>
+
+                <!-- =================== SQL CONSOLE TAB =================== -->
+                <section id="tab-sql-playground" class="tab-panel">
+                    <div class="glass-panel">
+                        <div class="sql-top-bar">
+                            <h2><i class="fa-solid fa-database"></i> SQL Console — Live Restaurant Database</h2>
+                            <button id="btn-db-reset" class="btn btn-secondary" style="color: var(--accent-magenta); border-color: rgba(255,0,127,0.25);">
+                                <i class="fa-solid fa-arrows-rotate"></i> Reset DB
+                            </button>
+                        </div>
+                        <p class="sql-hint">Write SQL queries to inspect and mutate the live restaurant data. Changes instantly reflect on the dashboard.</p>
+
+                        <div class="sql-layout">
+                            <!-- Schema Explorer -->
+                            <div class="schema-explorer glass-panel" style="background: rgba(0,0,0,0.3);">
+                                <h3 class="schema-title"><i class="fa-solid fa-sitemap"></i> Schema Explorer</h3>
+
+                                <div class="schema-table">
+                                    <div class="schema-table-title">tables <span class="schema-col-type">TABLE</span></div>
+                                    <div class="schema-table-columns">
+                                        <div class="schema-col-item"><span>id</span><span class="schema-col-type">INT PK</span></div>
+                                        <div class="schema-col-item"><span>table_number</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>capacity</span><span class="schema-col-type">INT</span></div>
+                                        <div class="schema-col-item"><span>status</span><span class="schema-col-type">VARCHAR</span></div>
+                                    </div>
+                                </div>
+                                <div class="schema-table">
+                                    <div class="schema-table-title">menu_items <span class="schema-col-type">TABLE</span></div>
+                                    <div class="schema-table-columns">
+                                        <div class="schema-col-item"><span>id</span><span class="schema-col-type">INT PK</span></div>
+                                        <div class="schema-col-item"><span>name</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>price</span><span class="schema-col-type">DECIMAL</span></div>
+                                        <div class="schema-col-item"><span>category</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>veg</span><span class="schema-col-type">BOOLEAN</span></div>
+                                    </div>
+                                </div>
+                                <div class="schema-table">
+                                    <div class="schema-table-title">orders <span class="schema-col-type">TABLE</span></div>
+                                    <div class="schema-table-columns">
+                                        <div class="schema-col-item"><span>id</span><span class="schema-col-type">INT PK</span></div>
+                                        <div class="schema-col-item"><span>table_id</span><span class="schema-col-type">INT NULL</span></div>
+                                        <div class="schema-col-item"><span>type</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>order_time</span><span class="schema-col-type">TIME</span></div>
+                                        <div class="schema-col-item"><span>status</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>discount</span><span class="schema-col-type">DECIMAL</span></div>
+                                    </div>
+                                </div>
+                                <div class="schema-table" style="border:none;margin:0;padding:0;">
+                                    <div class="schema-table-title">order_items <span class="schema-col-type">TABLE</span></div>
+                                    <div class="schema-table-columns">
+                                        <div class="schema-col-item"><span>id</span><span class="schema-col-type">INT PK</span></div>
+                                        <div class="schema-col-item"><span>order_id</span><span class="schema-col-type">INT FK</span></div>
+                                        <div class="schema-col-item"><span>item_name</span><span class="schema-col-type">VARCHAR</span></div>
+                                        <div class="schema-col-item"><span>price</span><span class="schema-col-type">DECIMAL</span></div>
+                                        <div class="schema-col-item"><span>quantity</span><span class="schema-col-type">INT</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SQL Editor & Output -->
+                            <div style="display:flex; flex-direction:column; gap:16px;">
+                                <div class="console-container">
+                                    <div class="console-editor">
+                                        <textarea id="sql-query-input" class="sql-editor-textarea" spellcheck="false"
+                                            placeholder="-- Type your SQL queries here...&#10;SELECT * FROM tables;"></textarea>
+                                    </div>
+                                    <div class="console-actions">
+                                        <select id="sql-templates" class="quick-templates-dropdown">
+                                            <option value="">-- Quick Templates --</option>
+                                            <option value="SELECT * FROM tables WHERE status = 'Vacant';">Find Vacant Tables</option>
+                                            <option value="SELECT * FROM menu_items WHERE category = 'Biryani';">Show Biryanis</option>
+                                            <option value="SELECT * FROM orders WHERE type = 'Parcel';">List Parcel Bills</option>
+                                            <option value="SELECT * FROM order_items WHERE quantity > 2;">High Quantity Items</option>
+                                            <option value="SELECT orders.id, orders.type, orders.order_time, orders.status FROM orders;">All Orders</option>
+                                        </select>
+                                        <button class="btn btn-primary" id="btn-run-sql">
+                                            <i class="fa-solid fa-play"></i> Run Query
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="sql-output-panel" id="sql-output-panel">
+                                    <div class="sql-output-status success">
+                                        <span>Status: Console Ready</span>
+                                        <span>Database: naidu_hotel.db (localStorage)</span>
+                                    </div>
+                                    <div class="sql-output-table-container" style="padding: 12px; color: var(--text-muted); font-style:italic; font-size:12px;">
+                                        SQL changes are applied live to the running system. Try <code style="color:var(--accent-cyan);">SELECT * FROM tables;</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================= MODALS ============================= -->
+
+    <!-- Dine-In Session Modal -->
+    <div id="modal-dinein" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="dinein-modal-title">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="dinein-modal-title"><i class="fa-solid fa-chair"></i> Open Dine-In Session</h3>
+                <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-dinein">
+                    <div class="form-group">
+                        <label for="di-table-select">Select a Vacant Table</label>
+                        <select id="di-table-select" class="form-control" required>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-arrow-right"></i> Start Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Manager Modal -->
+    <div id="modal-menu-manager" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mm-modal-title">
+        <div class="modal-box menu-manager-box">
+            <div class="modal-header">
+                <h3 id="mm-modal-title"><i class="fa-solid fa-gear"></i> Menu Catalog Manager</h3>
+                <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body mm-body">
+                <!-- Tabs -->
+                <div class="mm-tabs">
+                    <button class="mm-tab-btn active" data-mmtab="list" id="mm-tab-list">All Items</button>
+                    <button class="mm-tab-btn" data-mmtab="add" id="mm-tab-add"><i class="fa-solid fa-plus"></i> Add Item</button>
+                </div>
+
+                <!-- Items List -->
+                <div id="mm-panel-list" class="mm-panel active">
+                    <div id="mm-items-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Add / Edit Form -->
+                <div id="mm-panel-add" class="mm-panel">
+                    <input type="hidden" id="mm-edit-id" value="">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Item Name *</label>
+                            <input type="text" id="mm-item-name" class="form-control" placeholder="e.g. Chicken Biryani">
+                        </div>
+                        <div class="form-group">
+                            <label>Price (Rs.) *</label>
+                            <input type="number" id="mm-item-price" class="form-control" placeholder="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <input type="text" id="mm-item-category" class="form-control" placeholder="e.g. Biryani, Starters">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <div class="veg-toggle-group">
+                                <button type="button" class="veg-toggle-btn active" id="veg-btn-veg" data-val="true">
+                                    <span class="veg-dot veg"></span> Veg
+                                </button>
+                                <button type="button" class="veg-toggle-btn" id="veg-btn-nonveg" data-val="false">
+                                    <span class="veg-dot nonveg"></span> Non-Veg
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px; margin-top:8px;">
+                        <button class="btn btn-primary" id="mm-btn-save-item" style="flex:1;">
+                            <i class="fa-solid fa-floppy-disk"></i> <span id="mm-save-label">Add Item</span>
+                        </button>
+                        <button class="btn btn-secondary" id="mm-btn-cancel-edit" style="display:none;">
+                            Cancel Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Completed Order Modal -->
+    <div id="modal-edit-order" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="eo-modal-title">
+        <div class="modal-box edit-order-box">
+            <div class="modal-header">
+                <h3 id="eo-modal-title"><i class="fa-solid fa-pen-to-square"></i> Edit Order — <span id="eo-order-ref"></span></h3>
+                <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Current Items -->
+                <div class="eo-section">
+                    <h4 class="eo-section-title">Order Items</h4>
+                    <div id="eo-items-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Add Item from Menu -->
+                <div class="eo-section">
+                    <h4 class="eo-section-title">Add Item from Menu</h4>
+                    <div class="eo-add-row">
+                        <select id="eo-item-select" class="form-control" style="flex:1;">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <input type="number" id="eo-item-qty" class="form-control" value="1" min="1" style="width:80px;">
+                        <button class="btn btn-primary" id="eo-btn-add-item" style="white-space:nowrap;">
+                            <i class="fa-solid fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Note / Customer Name -->
+                <div class="eo-section">
+                    <h4 class="eo-section-title">Customer Note</h4>
+                    <input type="text" id="eo-customer-note" class="form-control" placeholder="e.g. Extra spicy, No onion, Customer name...">
+                </div>
+
+                <!-- Total preview -->
+                <div class="eo-total-bar" id="eo-total-bar">
+                    <span>Grand Total</span>
+                    <span id="eo-grand-total" class="eo-grand-num">Rs. 0</span>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-close">Cancel</button>
+                    <button class="btn btn-purple" id="eo-btn-save">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Bill Modal -->
+    <div id="modal-checkout" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
+        <div class="modal-box checkout-modal-box">
+            <!-- Left: Bill Summary -->
+            <div class="checkout-left">
+                <h3 id="checkout-modal-title" class="checkout-title">
+                    <i class="fa-solid fa-circle-check"></i> Bill Calculation
+                </h3>
+                <div class="bill-summary" id="co-bill-details">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="checkout-actions">
+                    <div class="checkout-print-row">
+                        <button class="btn btn-secondary" id="co-btn-print-kot-bt">
+                            <i class="fa-solid fa-kitchen-set"></i> KOT (BT)
+                        </button>
+                        <button class="btn btn-secondary" id="co-btn-print-bill-bt">
+                            <i class="fa-solid fa-print"></i> Bill (BT)
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" id="co-btn-print-browser" style="width: 100%;">
+                        <i class="fa-solid fa-file-pdf"></i> Standard Print (A4 / PDF)
+                    </button>
+                    <button class="btn btn-primary" id="co-btn-complete" style="width: 100%;">
+                        <i class="fa-solid fa-check-double"></i> Complete & Vacate Table
+                    </button>
+                    <button class="btn btn-secondary btn-close" style="width: 100%;">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Ordering
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Thermal Receipt Preview -->
+            <div class="checkout-right">
+                <div class="receipt-preview-tabs">
+                    <button class="btn btn-secondary btn-sm active" id="btn-preview-customer-bill">Customer Bill</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-preview-kot-bill">KOT Slip</button>
+                </div>
+                <div id="checkout-receipt-preview">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="db.js"></script>
+    <script src="printer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
